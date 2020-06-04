@@ -1,0 +1,110 @@
+---
+title: "project1C5"
+author: "sourabh jain"
+date: "04/06/2020"
+output: html_document
+---
+
+# Project 1
+
+## Intructions for the assignment
+1.Code for reading in the dataset and/or processing the data   
+2.Histogram of the total number of steps taken each day    
+3.Mean and median number of steps taken each day     
+4.Time series plot of the average number of steps taken   
+5.The 5-minute interval that, on average, contains the maximum number of steps  
+6.Code to describe and show a strategy for imputing missing data   
+7.Histogram of the total number of steps taken each day after missing values are imputed     
+8.Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends     
+9.All of the R code needed to reproduce the results (numbers, plots, etc.) in the report      
+
+
+### 1.Code for reading in the dataset and/or processing the data
+```{r readingcode}
+setwd("C:/Users/Srb/Documents/Sourabh")
+activity<-read.csv("activity.csv")
+```
+
+#### Exploring data
+```{r explore}
+dim(activity)
+str(activity)
+names(activity)
+head(activity)
+sum(is.na(activity))
+# with lubridate package change the date formate
+library(lubridate)
+activity$date<-ymd(activity$date)
+length(unique(activity$date))
+```
+
+### 2. Histogram of the total number of steps taken each day
+
+```{r plot1}
+total_steps <- with(activity, aggregate(steps, by = list(date), FUN = sum, na.rm = TRUE))
+names(total_steps) <- c("date", "steps")
+hist(total_steps$steps, main = "Total number of steps taken per day", xlab = "Total steps taken per day", ylim = c(0,20), breaks = seq(0,25000, by=2500))
+```
+
+### 3. Mean and median number of steps taken each day 
+```{r MeanAndMedian}
+mean(total_steps$steps)
+median(total_steps$steps)
+```
+
+### 4.Time series plot of the average number of steps taken 
+```{r timeSeries}
+average_activity<-with(activity, aggregate(steps, by=list(interval), FUN= mean,na.rm=TRUE))
+names(average_activity)<-c("interval","avg_step")
+plot(average_activity$interval,average_activity$avg_step, type="l", xlab="Interval", ylab="Average number of step", lwd=2, main="time series plot")
+```
+
+### 5. The 5-minute interval that, on average, contains the maximum number of steps 
+
+```{r}
+average_activity[which.max(average_activity$avg_step),1]
+```
+
+
+### 6.  Code to describe and show a strategy for imputing missing data 
+### 7.  Histogram of the total number of steps taken each day after missing values are imputed
+
+I decided to fill in all of the missing values in the dataset by the mean number of steps per interval.
+
+```{r}
+m<-mean(average_activity$avg_step)
+missingIndex<-is.na(activity[,1])
+activity1<-activity
+activity1[missingIndex,1]<-m
+total_steps_imputed<-with(activity1, aggregate(steps, by=list(date), FUN=sum))
+names(total_steps_imputed)<-c("date","step")
+hist(total_steps_imputed$step, xlab="Steps per day", ylab="count",main = "histogram with imputed missing value", col="yellow", breaks = seq(0,25000,by=1000))
+```
+
+### 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends 
+
+```{r}
+activity1$date<-as.Date(activity1$date)
+library(dplyr)
+activity2<-activity1%>%
+        mutate(dayType= ifelse(weekdays(activity1$date)=="Saturday" | weekdays(activity1$date)=="Sunday", "Weekend", "Weekday"))
+head(activity2)
+
+averageStepByDayTypeAndInterval<-activity2 %>%
+  group_by(dayType, interval) %>%
+  summarize(averageStepByDay=sum(steps))
+
+head(averageStepByDayTypeAndInterval)
+
+library(lattice)
+with(averageStepByDayTypeAndInterval, 
+      xyplot(averageStepByDay ~ interval | dayType, 
+      type = "l",      
+      main = "Total Number of Steps within Intervals by dayType",
+      xlab = "Daily Intervals",
+      ylab = "Average Number of Steps"))
+'''
+
+
+
+
